@@ -1,9 +1,18 @@
 'use client';
 
+const MIME_CANDIDATES = [
+  'audio/mp4',
+  'audio/mp4;codecs=mp4a.40.2',
+  'audio/aac',
+  'audio/webm;codecs=opus',
+  'audio/webm',
+  'audio/ogg;codecs=opus',
+  'audio/ogg',
+];
+
 export function pickRecorderMime(): string {
   if (typeof MediaRecorder === 'undefined') return '';
-  const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
-  return candidates.find(c => MediaRecorder.isTypeSupported(c)) ?? '';
+  return MIME_CANDIDATES.find(c => MediaRecorder.isTypeSupported(c)) ?? '';
 }
 
 export type RecordingHandle = {
@@ -14,7 +23,13 @@ export type RecordingHandle = {
 export async function startRecording(): Promise<RecordingHandle> {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   const mime = pickRecorderMime();
-  const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+  let recorder: MediaRecorder;
+  try {
+    recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+  } catch {
+    recorder = new MediaRecorder(stream);
+  }
+
   const chunks: Blob[] = [];
   recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
   const started = Date.now();
@@ -25,8 +40,9 @@ export async function startRecording(): Promise<RecordingHandle> {
       new Promise(resolve => {
         recorder.onstop = () => {
           stream.getTracks().forEach(t => t.stop());
+          const actualMime = recorder.mimeType || mime || 'audio/mp4';
           resolve({
-            blob: new Blob(chunks, { type: mime || 'audio/webm' }),
+            blob: new Blob(chunks, { type: actualMime }),
             durationMs: Date.now() - started,
           });
         };
@@ -44,10 +60,14 @@ const audioCache = new Map<string, HTMLAudioElement>();
 export function playUrl(key: string, url: string): void {
   let audio = audioCache.get(key);
   if (!audio) {
-    audio = new Audio(url);
+    audio = new Audio();
     audio.preload = 'auto';
     audioCache.set(key, audio);
   }
-  audio.currentTime = 0;
-  audio.play().catch(() => {});
+  if (audio.src !== url) audio.src = url;
+  try { audio.currentTime = 0; } catch {}
+  const p = audio.play();
+  if (p && typeof p.catch === 'function') {
+    p.catch(err => console.error('[soundboard] play failed:', url, err));
+  }
 }

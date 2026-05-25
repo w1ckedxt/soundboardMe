@@ -46,10 +46,11 @@ export async function deleteClipAudio(slug: string, clipId: string): Promise<voi
 }
 
 function mimeToExt(mime: string): string {
-  if (mime.includes('webm')) return 'webm';
-  if (mime.includes('mp4')) return 'm4a';
-  if (mime.includes('mpeg')) return 'mp3';
-  if (mime.includes('ogg')) return 'ogg';
-  if (mime.includes('wav')) return 'wav';
+  const m = mime.toLowerCase();
+  if (m.includes('webm')) return 'webm';
+  if (m.includes('mp4') || m.includes('aac') || m.includes('m4a')) return 'm4a';
+  if (m.includes('mpeg') || m.includes('mp3')) return 'mp3';
+  if (m.includes('ogg')) return 'ogg';
+  if (m.includes('wav')) return 'wav';
   return 'webm';
 }

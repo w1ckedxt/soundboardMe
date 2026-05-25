@@ -25,15 +25,18 @@ export async function addClip(
   editToken: string,
   payload: { emoji: string; label: string; audio: Blob; durationMs: number },
 ): Promise<Clip> {
-  const form = new FormData();
-  form.append('emoji', payload.emoji);
-  form.append('label', payload.label);
-  form.append('durationMs', String(payload.durationMs));
-  form.append('audio', payload.audio, 'clip');
-  const res = await fetch(`/api/board/${slug}/clip`, {
+  const qs = new URLSearchParams({
+    emoji: payload.emoji,
+    label: payload.label,
+    durationMs: String(payload.durationMs),
+  });
+  const res = await fetch(`/api/board/${slug}/clip?${qs.toString()}`, {
     method: 'POST',
-    headers: { 'x-edit-token': editToken },
-    body: form,
+    headers: {
+      'x-edit-token': editToken,
+      'content-type': payload.audio.type || 'audio/webm',
+    },
+    body: payload.audio,
   });
   if (!res.ok) throw new Error(await errText(res, 'Kon clip niet opslaan'));
   return res.json();

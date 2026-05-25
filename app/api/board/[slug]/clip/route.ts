@@ -6,7 +6,7 @@ import type { Clip } from '@/lib/types';
 export const runtime = 'nodejs';
 export const maxDuration = 30;
 
-const MAX_AUDIO_BYTES = 2_000_000;
+const MAX_AUDIO_BYTES = 5_000_000;
 
 export async function POST(
   req: NextRequest,
@@ -25,30 +25,31 @@ export async function POST(
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
-  const form = await req.formData();
-  const audio = form.get('audio');
-  const emoji = String(form.get('emoji') ?? '🎤').slice(0, 8);
-  const label = String(form.get('label') ?? '').trim().slice(0, 40);
-  const durationMs = Number(form.get('durationMs') ?? 0);
+  const url = new URL(req.url);
+  const emoji = (url.searchParams.get('emoji') ?? '🎤').slice(0, 8);
+  const label = (url.searchParams.get('label') ?? '').trim().slice(0, 40);
+  const durationMs = Number(url.searchParams.get('durationMs') ?? 0);
 
-  if (!(audio instanceof Blob) || !audio.size) {
-    return NextResponse.json({ error: 'no audio' }, { status: 400 });
-  }
   if (!label) {
     return NextResponse.json({ error: 'label required' }, { status: 400 });
   }
+
+  const audio = await req.blob();
+  if (!audio.size) {
+    return NextResponse.json({ error: 'no audio' }, { status: 400 });
+  }
   if (audio.size > MAX_AUDIO_BYTES) {
-    return NextResponse.json({ error: 'audio te groot (max 2MB)' }, { status: 413 });
+    return NextResponse.json({ error: `audio te groot (max ${MAX_AUDIO_BYTES / 1_000_000}MB)` }, { status: 413 });
   }
 
   const clipId = newClipId();
-  const { url } = await putClipAudio(slug, clipId, audio);
+  const { url: audioUrl } = await putClipAudio(slug, clipId, audio);
 
   const clip: Clip = {
     id: clipId,
     emoji,
     label,
-    audioUrl: url,
+    audioUrl,
     durationMs,
     createdAt: Date.now(),
   };
