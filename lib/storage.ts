@@ -10,7 +10,7 @@ export async function getBoard(slug: string): Promise<Board | null> {
   const { blobs } = await list({ prefix: path, limit: 1 });
   const match = blobs.find(b => b.pathname === path);
   if (!match) return null;
-  const res = await fetch(match.url, { cache: 'no-store' });
+  const res = await fetch(`${match.url}?t=${Date.now()}`, { cache: 'no-store' });
   if (!res.ok) return null;
   return (await res.json()) as Board;
 }
@@ -21,6 +21,7 @@ export async function putBoard(board: Board): Promise<void> {
     contentType: 'application/json',
     addRandomSuffix: false,
     allowOverwrite: true,
+    cacheControlMaxAge: 0,
   });
 }
 
