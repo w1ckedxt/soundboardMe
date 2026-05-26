@@ -4,34 +4,15 @@
 
 ---
 
-## STATUS — 2026-05-25
+## STATUS — 2026-05-26
 
-**Fase:** 2 — Bugfixing op live deploy (iOS upload issues)
+**Fase:** MVP SHIPPED ✅ — werkt op desktop + iOS (Safari/Chrome geverifieerd)
 **Stack:** Next.js 15 (App Router) + Tailwind v4 + TypeScript
 **Storage:** Vercel Blob (audio + metadata JSON, geen DB)
 **Hosting:** https://soundboard-me.vercel.app
 **Repo:** https://github.com/w1ckedxt/soundboardMe.git
 
----
-
-## 🚨 OPEN PUNT — iOS Chrome upload werkt niet (volgende sessie pickup)
-
-**Symptoom:** Thomas neemt clip op via Chrome iPhone → opslaan lijkt te slagen in UI → andere device opent share-URL → 0 clips zichtbaar. Ook eigen refresh toont 0 clips.
-
-**Bewijs dat server flow zelf OK is:**
-- Curl-test (commit `7d47876`) tegen live API → clip wordt correct gepersisteerd in board JSON. Volledige flow werkt server-side.
-
-**Aanname:** iOS WebKit (Chrome iOS = Safari engine) FormData+Blob quirk waardoor audio body leeg aankomt op server. Server slaat dan een lege/corrupte clip op of crasht silent.
-
-**Fix gepusht in commit `9fb88a2`:**
-- Upload via raw POST body ipv FormData (omzeilt WebKit FormData bug)
-- `audio/mp4` bovenaan in mime detection (iOS preferred)
-- `recorder.mimeType` als source of truth voor blob construction
-- Audio size limit 2MB → 5MB
-- Server lenient mime mapping (aac, m4a aliases)
-- Console.error op audio play failures (was silent)
-
-**Niet getest na fix.** Volgende sessie: vraag Thomas of na nieuwste deploy iOS clip upload werkt. Zo niet → vraag slug, hit `/api/board/<slug>` om te zien of clip in storage staat. Als clip er WEL is maar niet afspeelt → playback issue. Als clip er NIET is → upload issue dieper.
+Side project — done for the fun. Polish/Fase 2+ is optioneel, pak op wanneer de zin er is.
 
 ---
 
@@ -46,11 +27,13 @@
 - [x] Share via Web Share API + clipboard fallback
 - [x] Modulaire file structuur (~25 kleine files)
 
-### Fase 2 — Live bugfixes (IN PROGRESS)
+### Fase 2 — Live bugfixes (KLAAR ✅)
 - [x] **Build fix:** bump `@vercel/blob` naar `^2.4.0` voor `allowOverwrite` support (commit `6171e1a`)
 - [x] **CDN cache fix:** `cacheControlMaxAge: 0` + cache-buster op fetch — nieuwe clips zichtbaar voor viewers zonder 30d wachten (commit `7d47876`)
 - [x] **iOS Safari fix:** raw-body upload ipv FormData, mp4-first mime (commit `9fb88a2`)
-- [ ] **iOS test verificatie** ← Thomas moet bevestigen of fix werkt
+- [x] **iOS test verificatie** — Thomas bevestigd op iPhone, werkt (2026-05-26)
+
+### Fase 2.5 — Optionele polish (niet urgent)
 - [ ] Loading skeletons ipv "laden…"
 - [ ] Optimistische UI bij clip toevoegen
 - [ ] Edit-link kopiëren badge na board create
@@ -157,3 +140,4 @@ lib/
 ## ARCHIEF
 
 - **2026-05-25 sessie 1** — Volledige MVP gebouwd + gedeployed naar Vercel. 3 bugfixes na live test: build error (@vercel/blob version), CDN cache (clips niet zichtbaar voor viewers), iOS Safari upload (raw body fix). Laatste fix nog niet door Thomas geverifieerd op iPhone.
+- **2026-05-26 sessie 2** — iOS upload door Thomas op iPhone geverifieerd → werkt. MVP shipped, end-to-end functioneel. Project status: done for the fun.
